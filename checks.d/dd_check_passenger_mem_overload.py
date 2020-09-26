@@ -3,10 +3,7 @@ import shlex
 import subprocess
 from datetime import datetime
 
-try:
-    from datadog_checks.base import AgentCheck
-except ImportError:
-    from checks import AgentCheck
+from datadog_checks.base import AgentCheck
 
 # content of the special variable __version__ will be shown in the Agent status page
 __version__ = "1.0.0"
@@ -33,7 +30,8 @@ def get_logger(name=__name__):
 
 class PassengerMemOverloadCheck(AgentCheck):
 
-    def _exec_command(self, command, stdout=subprocess.PIPE, stdin=None, stderr=subprocess.DEVNULL):
+    @staticmethod
+    def _exec_command(command, stdout=subprocess.PIPE, stdin=None, stderr=subprocess.DEVNULL):
         return subprocess.Popen(shlex.split(command), stdin=stdin, stdout=stdout, stderr=stderr)
 
     def get_processes_overloaded(self):
@@ -42,9 +40,9 @@ class PassengerMemOverloadCheck(AgentCheck):
             cmd_pipe_2 = "grep AppPreloader"
             cmd_pipe_3 = 'awk \'{{if ($4 > {0}) print $1}}\''.format(self.threshold)
 
-            pipe_1 = self._exec_command(cmd_pipe_1)
-            pipe_2 = self._exec_command(cmd_pipe_2, stdin=pipe_1.stdout)
-            pipe_3 = self._exec_command(cmd_pipe_3, stdin=pipe_2.stdout)
+            pipe_1 = self._exec_command(command=cmd_pipe_1)
+            pipe_2 = self._exec_command(command=cmd_pipe_2, stdin=pipe_1.stdout)
+            pipe_3 = self._exec_command(command=cmd_pipe_3, stdin=pipe_2.stdout)
 
             pids_list = pipe_3.communicate()[0].decode().split()
 
@@ -63,7 +61,6 @@ class PassengerMemOverloadCheck(AgentCheck):
         kill_cmd = "sudo kill -9 {}".format(pid_process)
         pipe = self._exec_command(kill_cmd, stderr=subprocess.PIPE)
         pid_status, pid_err = pipe.communicate()
-        self.log.info('stdout: {}, stderr: {}'.format(pid_status, pid_err))
 
         if pid_err: self.log.error(pid_err)
 
