@@ -13,6 +13,10 @@ class GetProcessessOverloadedException(Exception):
     pass
 
 
+class GetInstanceConfigException(Exception):
+    def __init__(self, message):
+        self.message = message
+
 def get_logger(name=__name__):
     formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
 
@@ -64,21 +68,21 @@ class PassengerMemOverloadCheck(AgentCheck):
 
         if pid_err: self.log.error(pid_err)
 
-        return pid_status
+        return pid_status if pid_status else f'Process {pid_process} killed'
 
     def detach_process(self, pid_process, sig_kill=None):
         detach_cmd = "sudo passenger-config detach-process {}".format(pid_process)
 
-        pipe = self._exec_command(detach_cmd, stderr=subprocess.PIPE)
+        pipe = self._exec_command(command=detach_cmd, stderr=subprocess.PIPE)
         pid_status, pid_err = pipe.communicate()
         self.log.debug('stdout: {}, stderr: {}'.format(pid_status, pid_err))
 
         if pid_err and sig_kill is None:
-            pid_status = self.detach_process(pid_process, sig_kill=True)
+            pid_status = self.detach_process(pid_process=pid_process, sig_kill=True)
 
         elif pid_err and sig_kill:
             self.log.debug("SIGKILL to PID: {}".format(pid_process))
-            pid_status = self._kill_process(pid_process)
+            pid_status = self._kill_process(pid_process=pid_process)
 
         return pid_status
 
@@ -98,7 +102,7 @@ class PassengerMemOverloadCheck(AgentCheck):
         threshold = instance.get('threshold', None)
 
         if threshold is None:
-            raise Exception('A threshold must be specified in instance cfg')
+            raise GetInstanceConfigException(message='A threshold must be specified in cfg')
 
         config = {
             'threshold': threshold
