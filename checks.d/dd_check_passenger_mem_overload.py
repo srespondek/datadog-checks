@@ -17,6 +17,7 @@ class GetInstanceConfigException(Exception):
     def __init__(self, message):
         self.message = message
 
+
 def get_logger(name=__name__):
     formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
 

@@ -1,7 +1,8 @@
 from unittest import TestCase
 from unittest.mock import patch
 
-from dd_check_passenger_mem_overload import PassengerMemOverloadCheck, GetProcessessOverloadedException, GetInstanceConfigException
+from dd_check_passenger_mem_overload import PassengerMemOverloadCheck, GetProcessessOverloadedException, \
+    GetInstanceConfigException
 
 
 class TestPassengerMemOverloadCheck(TestCase):
@@ -124,4 +125,3 @@ class TestPassengerMemOverloadCheck(TestCase):
 
         # then
         self.assertEqual(exc.exception.message, 'A threshold must be specified in cfg')
-

@@ -4,10 +4,7 @@ import shlex
 import subprocess
 from datetime import datetime
 
-try:
-    from datadog_checks.base import AgentCheck
-except ImportError:
-    from checks import AgentCheck
+from datadog_checks.base import AgentCheck
 
 # content of the special variable __version__ will be shown in the Agent status page
 __version__ = "1.0.0"
@@ -38,20 +35,20 @@ def get_logger(name=__name__):
 
 class PassengerQueueCheck(AgentCheck):
     CRIT_REQ_CNT = 800
-    CMD_1 = "sudo passenger-status"
-    CMD_2 = """awk /"Requests in queue"/'{print $4 }'"""
-    CMD_3 = "sudo passenger-status --show=requests --no-header"
 
-    def _exec_command(self, command, stdin=None, stderr=None):
+    @staticmethod
+    def _exec_command(command, stdin=None, stderr=None):
         return subprocess.Popen(shlex.split(command), stdin=stdin, stdout=subprocess.PIPE, stderr=stderr)
 
     def _convert_to_json(self, pipe):
         return json.loads(pipe)
 
-    def _get_queue_size(self):
+    def get_queue_size(self):
+        cmd_1 = "sudo passenger-status"
+        cmd_2 = """awk /"Requests in queue"/'{print $4}'"""
         try:
-            pipe_1 = self._exec_command(self.CMD_1)
-            pipe_2 = self._exec_command(self.CMD_2, stdin=pipe_1.stdout)
+            pipe_1 = self._exec_command(command=cmd_1)
+            pipe_2 = self._exec_command(command=cmd_2, stdin=pipe_1.stdout)
             data = pipe_2.communicate()[0].decode().split()[0]
         except Exception as exc:
             self.log.exception(exc)
@@ -62,16 +59,17 @@ class PassengerQueueCheck(AgentCheck):
 
             return int(data)
 
-    def _get_requests_from_queue(self):
+    def get_requests_details(self):
+        cmd = "sudo passenger-status --show=requests --no-header"
         try:
-            pipe_3 = self._exec_command(self.CMD_3)
-            data = pipe_3.communicate()[0]
+            pipe = self._exec_command(cmd)
+            data = pipe.communicate()[0]
             data_in_json = self._convert_to_json(data)
         except Exception as exc:
             self.log.exception(exc)
             raise GetRequestsException
         else:
-            pipe_3.stdout.close()
+            pipe.stdout.close()
 
             return data_in_json
 
@@ -83,9 +81,9 @@ class PassengerQueueCheck(AgentCheck):
     def collect(self):
         self.log, fileHandler = get_logger()
 
-        queue_size = self._get_queue_size()
-        requests_details_in_json = self._get_requests_from_queue()
-        self.log_if_urgent(queue_size, requests_details_in_json)
+        queue_size = self.get_queue_size()
+        requests_data = self.get_requests_details()
+        self.log_if_urgent(queue_size, requests_data)
 
         self.log.removeHandler(fileHandler)
         fileHandler.flush()
