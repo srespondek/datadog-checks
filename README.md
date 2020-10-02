@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/srespondek/datadog-checks.svg?branch=master)](https://travis-ci.com/srespondek/datadog-checks)
+
 # datadog-checks
 Custom datadog checks
 
