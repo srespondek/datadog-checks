@@ -33,6 +33,7 @@ def get_logger(name=__name__):
 
     return logger, fileHandler
 
+
 def log_wrapper(method):
     @wraps(method)
     def _impl(self, *method_args, **method_kwargs):
@@ -42,6 +43,7 @@ def log_wrapper(method):
         fileHandler.flush()
         fileHandler.close()
         return method_output
+
     return _impl
 
 
