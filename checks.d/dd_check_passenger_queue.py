@@ -3,6 +3,7 @@ import logging
 import shlex
 import subprocess
 from datetime import datetime
+from functools import wraps
 
 from datadog_checks.base import AgentCheck
 
@@ -31,6 +32,17 @@ def get_logger(name=__name__):
     logger.addHandler(fileHandler)
 
     return logger, fileHandler
+
+def log_wrapper(method):
+    @wraps(method)
+    def _impl(self, *method_args, **method_kwargs):
+        self.log, fileHandler = get_logger()
+        method_output = method(self, *method_args, **method_kwargs)
+        self.log.removeHandler(fileHandler)
+        fileHandler.flush()
+        fileHandler.close()
+        return method_output
+    return _impl
 
 
 class PassengerQueueCheck(AgentCheck):
@@ -78,16 +90,11 @@ class PassengerQueueCheck(AgentCheck):
             self.log.debug("Queue_size: {}".format(queue_size))
             self.log.debug("Requests details : {}".format(requests_details))
 
+    @log_wrapper
     def collect(self):
-        self.log, fileHandler = get_logger()
-
         queue_size = self.get_queue_size()
         requests_data = self.get_requests_details()
         self.log_if_urgent(queue_size, requests_data)
-
-        self.log.removeHandler(fileHandler)
-        fileHandler.flush()
-        fileHandler.close()
 
         self.gauge('dd.check_passenger_queue.requests.count', queue_size)
 

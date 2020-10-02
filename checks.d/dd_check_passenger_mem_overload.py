@@ -2,6 +2,7 @@ import logging
 import shlex
 import subprocess
 from datetime import datetime
+from functools import wraps
 
 from datadog_checks.base import AgentCheck
 
@@ -31,6 +32,19 @@ def get_logger(name=__name__):
     logger.addHandler(fileHandler)
 
     return logger, fileHandler
+
+
+def log_wrapper(method):
+    @wraps(method)
+    def _impl(self, *method_args, **method_kwargs):
+        self.log, fileHandler = get_logger()
+        method_output = method(self, *method_args, **method_kwargs)
+        self.log.removeHandler(fileHandler)
+        fileHandler.flush()
+        fileHandler.close()
+        return method_output
+
+    return _impl
 
 
 class PassengerMemOverloadCheck(AgentCheck):
@@ -87,15 +101,11 @@ class PassengerMemOverloadCheck(AgentCheck):
 
         return pid_status
 
+    @log_wrapper
     def collect(self):
-        self.log, fileHandler = get_logger()
 
         pid_processes_overloaded_list = self.get_processes_overloaded()
         detached_processes_list = [self.detach_process(pid_process) for pid_process in pid_processes_overloaded_list]
-
-        self.log.removeHandler(fileHandler)
-        fileHandler.flush()
-        fileHandler.close()
 
         self.gauge('dd.check_passenger_mem_overload.detached_processess.count', len(detached_processes_list))
 
