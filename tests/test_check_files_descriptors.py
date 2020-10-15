@@ -5,7 +5,6 @@ from dd_check_files_descriptors import FilesDescriptorsCheck, GetDeletedStatsExc
 
 
 class TestFileDescMonCheck(TestCase):
-
     maxDiff = None
 
     def setUp(self):
@@ -43,46 +42,50 @@ class TestFileDescMonCheck(TestCase):
         mock_exec_cmd().communicate.assert_called_once()
         mock_exec_cmd().stdout.close.not_called()
 
-    def test_collect_successfully_without_users(self):
+    def test_collect_successfully_1(self):
+        # given
+        self.file_descriptors_check.init_config = {'mon_user_list': ['testing-user-1','testing-user-2']}
+        self.file_descriptors_check.metrics_collected = {
+            'global': {},
+            'local': {}
+        }
+        expected_result = {
+            'global': {'dd.check_files_descriptors.global.current_size.count': 1000,
+                       'dd.check_files_descriptors.global.deleted_files.count': 2345,
+                       'dd.check_files_descriptors.global.limit_size.count': 999999},
+            'local': {'dd.check_files_descriptors.local.testing-user-1.deleted_files.count': 555,
+                      'dd.check_files_descriptors.local.testing-user-2.deleted_files.count': 235}
+        }
+
+        # when
+        with patch.object(self.file_descriptors_check, '_get_global_stats') as mock_glob_stats:
+            with patch.object(self.file_descriptors_check, 'get_size_of_deleted_files') as mock_del_files:
+                mock_glob_stats.return_value = ['1000', '0', '999999']
+                mock_del_files.side_effect = [2345, 555, 235]
+                self.file_descriptors_check.collect()
+
+        self.assertEqual(self.file_descriptors_check.metrics_collected, expected_result)
+
+    def test_collect_successfully_2(self):
         # given
         self.file_descriptors_check.init_config = {'mon_user_list': []}
-
-        expected_collected_metrics = {
-            'global': {'dd.check_files_descriptors.global.current_size.count': 1000,
-                       'dd.check_files_descriptors.global.deleted_files.count': 10,
-                       'dd.check_files_descriptors.global.limit_size.count': 66666},
+        self.file_descriptors_check.metrics_collected = {
+            'global': {},
             'local': {}
         }
 
-        # when
-        with patch.object(self.file_descriptors_check, '_get_global_stats') as mock_glob_stats:
-            with patch.object(self.file_descriptors_check, 'get_size_of_deleted_files') as mock_del_files:
-                mock_glob_stats.return_value = ['1000', '0', '66666']
-                mock_del_files.side_effect = [10]
-                self.file_descriptors_check.collect()
-
-        # then
-        self.assertDictEqual(self.file_descriptors_check.metrics_collected, expected_collected_metrics)
-
-
-    def test_collect_successfully_with_two_users(self):
-        # given
-        self.file_descriptors_check.init_config = {'mon_user_list': ['test1', 'test2']}
-
-        expected_collected_metrics = {
-            'global': {'dd.check_files_descriptors.global.current_size.count': 20000,
-                       'dd.check_files_descriptors.global.deleted_files.count': 20,
-                       'dd.check_files_descriptors.global.limit_size.count': 333333},
-            'local': {'dd.check_files_descriptors.local.test1.deleted_files.count': 25,
-                      'dd.check_files_descriptors.local.test2.deleted_files.count': 30}
-        }
+        expected_result = {
+            'global': {'dd.check_files_descriptors.global.current_size.count': 5020,
+                       'dd.check_files_descriptors.global.deleted_files.count': 10,
+                       'dd.check_files_descriptors.global.limit_size.count': 88888},
+            'local': {}}
 
         # when
         with patch.object(self.file_descriptors_check, '_get_global_stats') as mock_glob_stats:
             with patch.object(self.file_descriptors_check, 'get_size_of_deleted_files') as mock_del_files:
-                mock_glob_stats.return_value = ['20000', '0', '333333']
-                mock_del_files.side_effect = [20, 25, 30]
+                mock_glob_stats.return_value = ['5020', '0', '88888']
+                mock_del_files.return_value = 10
                 self.file_descriptors_check.collect()
 
         # then
-        self.assertDictEqual(self.file_descriptors_check.metrics_collected, expected_collected_metrics)
+        self.assertEqual(self.file_descriptors_check.metrics_collected, expected_result)

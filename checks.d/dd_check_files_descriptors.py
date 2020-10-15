@@ -107,7 +107,7 @@ class FilesDescriptorsCheck(AgentCheck):
         self._set_metric(range='global', path='dd.check_files_descriptors.global.deleted_files.count',
                          value=self.get_size_of_deleted_files())
         [self._set_metric(range='local', path=f'dd.check_files_descriptors.local.{user}.deleted_files.count',
-                          value=self.get_size_of_deleted_files(user)) for user in users if users]
+                          value=self.get_size_of_deleted_files(user)) for user in users]
 
     def report(self):
         [self.gauge(metric_key, metric_value) for region in ('global', 'local') for metric_key, metric_value in
