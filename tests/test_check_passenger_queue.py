@@ -43,7 +43,6 @@ class TestPassengerQueueCheck(TestCase):
 
         # then
         mock_exec_cmd().communicate.assert_called_once()
-        mock_exec_cmd().stdout.close.not_called()
 
     def test_get_requests_details_successfully(self):
         # given
@@ -71,7 +70,6 @@ class TestPassengerQueueCheck(TestCase):
 
         # then
         mock_exec_cmd().communicate.assert_called_once()
-        mock_exec_cmd().stdout.close.not_called()
 
     def test_collect_data_successfully_with_queue_above_crit_threshold(self):
         # given / when

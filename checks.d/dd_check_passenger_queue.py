@@ -68,9 +68,6 @@ class PassengerQueueCheck(AgentCheck):
             self.log.exception(exc)
             raise GetQueueSizeException
         else:
-            pipe_1.stdout.close()
-            pipe_2.stdout.close()
-
             return int(data)
 
     def get_requests_details(self):
