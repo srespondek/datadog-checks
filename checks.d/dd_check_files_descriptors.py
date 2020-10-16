@@ -1,8 +1,8 @@
 import logging
 import shlex
 import subprocess
-from functools import wraps
 from datetime import datetime
+from functools import wraps
 
 from datadog_checks.base import AgentCheck
 
@@ -74,11 +74,9 @@ class FilesDescriptorsCheck(AgentCheck):
             data_stats = fh.readline().split()
         return data_stats
 
-
     def _set_metric(self, range, path, value):
         self.metrics_collected[range].setdefault(path, value)
         self.log.debug(f'_set_metric {range}: {path}:{value}')
-
 
     def get_size_of_deleted_files(self, user=None):
         cmd_1 = f"sudo lsof -u {user}" if user else "sudo lsof"
@@ -96,7 +94,6 @@ class FilesDescriptorsCheck(AgentCheck):
         else:
             return int(stats_cnt)
 
-
     def collect(self):
         self.init_config = self._get_init_config()
         users = self.init_config.get('mon_user_list')
@@ -112,7 +109,8 @@ class FilesDescriptorsCheck(AgentCheck):
                           value=self.get_size_of_deleted_files(user)) for user in users]
 
     def report(self):
-        [self.log.debug(f'report: {metric_key}{metric_value}') for region in ('global', 'local') for metric_key, metric_value in
+        [self.log.debug(f'report: {metric_key}{metric_value}') for region in ('global', 'local') for
+         metric_key, metric_value in
          self.metrics_collected[region].items()]
         [self.gauge(metric_key, metric_value) for region in ('global', 'local') for metric_key, metric_value in
          self.metrics_collected[region].items()]
