@@ -110,8 +110,7 @@ class FilesDescriptorsCheck(AgentCheck):
 
     def report(self):
         [self.log.debug(f'report: {metric_key}{metric_value}') for region in ('global', 'local') for
-         metric_key, metric_value in
-         self.metrics_collected[region].items()]
+         metric_key, metric_value in self.metrics_collected[region].items()]
         [self.gauge(metric_key, metric_value) for region in ('global', 'local') for metric_key, metric_value in
          self.metrics_collected[region].items()]
 
