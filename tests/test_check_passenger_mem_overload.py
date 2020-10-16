@@ -31,7 +31,6 @@ class TestPassengerMemOverloadCheck(TestCase):
         self.assertEqual(len(mock_exec_cmd.call_args_list), 4)
         self.assertEqual(test_overloaded_pid_list, result)
         mock_exec_cmd().communicate.assert_called_once()
-        mock_exec_cmd().stdout.close.assert_called()
 
     def test_get_processess_overloaded_failed_caused_by_exception(self):
         # given
@@ -44,7 +43,6 @@ class TestPassengerMemOverloadCheck(TestCase):
                 self.passenger_mem_check.get_processes_overloaded()
 
         mock_exec_cmd().communicate.assert_called_once()
-        mock_exec_cmd().stdout.close.not_called()
 
     def test_detach_process_successfully(self):
         # given
