@@ -1,5 +1,6 @@
+import builtins
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, call, mock_open
 
 from dd_check_files_descriptors import FilesDescriptorsCheck, GetDeletedStatsException
 
@@ -10,8 +11,12 @@ class TestFileDescMonCheck(TestCase):
     def setUp(self):
         super().setUp()
 
+        self.patch_logging = patch('dd_check_files_descriptors.logging').start()
         self.file_descriptors_check = FilesDescriptorsCheck()
-        self.collected_metrics = {}
+        self.file_descriptors_check.metrics_collected = {
+            'global': {},
+            'local': {}
+        }
 
     def tearDown(self):
         super().tearDown()
@@ -42,13 +47,10 @@ class TestFileDescMonCheck(TestCase):
         mock_exec_cmd().communicate.assert_called_once()
         mock_exec_cmd().stdout.close.not_called()
 
-    def test_collect_successfully_1(self):
+    def test_collect_successfully_with_users(self):
         # given
-        self.file_descriptors_check.init_config = {'mon_user_list': ['testing-user-1','testing-user-2']}
-        self.file_descriptors_check.metrics_collected = {
-            'global': {},
-            'local': {}
-        }
+        self.file_descriptors_check.init_config = {'mon_user_list': ['testing-user-1', 'testing-user-2']}
+
         expected_result = {
             'global': {'dd.check_files_descriptors.global.current_size.count': 1000,
                        'dd.check_files_descriptors.global.deleted_files.count': 2345,
@@ -66,13 +68,9 @@ class TestFileDescMonCheck(TestCase):
 
         self.assertEqual(self.file_descriptors_check.metrics_collected, expected_result)
 
-    def test_collect_successfully_2(self):
+    def test_collect_successfully_without_users(self):
         # given
         self.file_descriptors_check.init_config = {'mon_user_list': []}
-        self.file_descriptors_check.metrics_collected = {
-            'global': {},
-            'local': {}
-        }
 
         expected_result = {
             'global': {'dd.check_files_descriptors.global.current_size.count': 5020,
@@ -89,3 +87,64 @@ class TestFileDescMonCheck(TestCase):
 
         # then
         self.assertEqual(self.file_descriptors_check.metrics_collected, expected_result)
+
+    def test_report_call_successfully(self):
+        # given
+        self.file_descriptors_check.metrics_collected = {
+            'global': {'dd.check_files_descriptors.global.current_size.count': 5020,
+                       'dd.check_files_descriptors.global.deleted_files.count': 10,
+                       'dd.check_files_descriptors.global.limit_size.count': 88888},
+            'local': {}
+        }
+
+        # when
+        with patch.object(self.file_descriptors_check, 'gauge') as mock_gauge:
+            self.file_descriptors_check.report()
+
+        # then
+        mock_gauge.has_calls = [
+            call('dd.check_files_descriptors.global.current_size.count', 5020),
+            call('dd.check_files_descriptors.global.deleted_files.count', 10),
+            call('dd.check_files_descriptors.global.limit_size.count', 88888)
+        ]
+
+    def test_report_without_metrics_caused_not_called(self):
+        # given
+        self.file_descriptors_check.metrics_collected = {
+            'global': {},
+            'local': {}
+        }
+
+        # when
+        with patch.object(self.file_descriptors_check, 'gauge') as mock_gauge:
+            self.file_descriptors_check.report()
+
+        # then
+        mock_gauge.not_called()
+
+    def test_get_global_stats_successfully(self):
+        # given
+        expected_result = ['5020', '0', '88888']
+
+        # when
+        with patch.object(builtins, 'open', mock_open(read_data="5020 0 88888")):
+            result = self.file_descriptors_check._get_global_stats()
+
+        # then
+        self.assertTrue(result, expected_result)
+
+    def test_check_with_logging_successfully(self):
+        # given
+        self.file_descriptors_check.metrics_collected = {
+            'global': {'dd.check_files_descriptors.global.current_size.count': 5020,
+                       'dd.check_files_descriptors.global.deleted_files.count': 10,
+                       'dd.check_files_descriptors.global.limit_size.count': 88888},
+            'local': {}
+        }
+
+        # when
+        with patch.object(self.file_descriptors_check, 'collect'):
+            self.file_descriptors_check.check({'test': 'test'})
+
+        # then
+        self.assertEqual(self.file_descriptors_check.log.debug.call_count, 3)

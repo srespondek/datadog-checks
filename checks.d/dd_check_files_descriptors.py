@@ -77,6 +77,7 @@ class FilesDescriptorsCheck(AgentCheck):
 
     def _set_metric(self, range, path, value):
         self.metrics_collected[range].setdefault(path, value)
+        self.log.debug(f'_set_metric {range}: {path}:{value}')
 
 
     def get_size_of_deleted_files(self, user=None):
@@ -90,6 +91,7 @@ class FilesDescriptorsCheck(AgentCheck):
 
             stats_cnt = pipe_3.communicate()[0].decode()
         except Exception as exc:
+            self.log.exception(str(exc))
             raise GetDeletedStatsException
         else:
             return int(stats_cnt)
@@ -110,6 +112,8 @@ class FilesDescriptorsCheck(AgentCheck):
                           value=self.get_size_of_deleted_files(user)) for user in users]
 
     def report(self):
+        [self.log.debug(f'report: {metric_key}{metric_value}') for region in ('global', 'local') for metric_key, metric_value in
+         self.metrics_collected[region].items()]
         [self.gauge(metric_key, metric_value) for region in ('global', 'local') for metric_key, metric_value in
          self.metrics_collected[region].items()]
 
