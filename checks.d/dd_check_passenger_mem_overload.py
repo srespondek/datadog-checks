@@ -70,10 +70,6 @@ class PassengerMemOverloadCheck(AgentCheck):
             self.log.exception(exc)
             raise GetProcessessOverloadedException
         else:
-            pipe_1.stdout.close()
-            pipe_2.stdout.close()
-            pipe_3.stdout.close()
-
             return pids_list
 
     def _kill_process(self, pid_process):
