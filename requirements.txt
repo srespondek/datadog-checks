@@ -7,3 +7,4 @@ requests==2.24.0
 requests_unixsocket==0.2.0
 requests-toolbelt==0.9.1
 prometheus_client==0.8.0
+six==1.15.0
