@@ -3,7 +3,7 @@ sudo: false
 cache: pip
 matrix:
   include:
-    - python: '3.8'
+    - python: '3.8.0'
 before_install:
   - python --version
   - uname -a
